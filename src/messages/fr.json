@@ -1,0 +1,22 @@
+{
+  "app_title": "Carnet d’entraînement",
+  "app_description": "Une vue privée des entraînements exportés d’Apple Santé.",
+  "workouts": "Entraînements",
+  "last_28_days": "28 derniers jours",
+  "sessions": "séances",
+  "minutes": "minutes",
+  "energy": "kcal actives",
+  "distance": "kilomètres",
+  "recent_workouts": "Entraînements récents",
+  "table_view": "Tableau",
+  "calendar_view": "Calendrier",
+  "no_workouts_day": "Aucun entraînement ce jour-là.",
+  "date": "Date",
+  "activity": "Activité",
+  "duration": "Durée",
+  "heart_rate": "Fréquence cardiaque moy.",
+  "empty": "Aucun entraînement trouvé. Exécutez bun run health:import après avoir placé export.zip à la racine du projet.",
+  "load_error": "Les données d’entraînement n’ont pas pu être chargées.",
+  "source_note": "Indexé localement depuis l’export Apple Santé export.zip",
+  "language": "English"
+}

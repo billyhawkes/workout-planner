@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+tmp/
+src/paraglide/
+src/routeTree.gen.ts
+export.zip

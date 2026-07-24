@@ -1,0 +1,22 @@
+{
+  "app_title": "Training Ledger",
+  "app_description": "A private view of workouts exported from Apple Health.",
+  "workouts": "Workouts",
+  "last_28_days": "Last 28 days",
+  "sessions": "sessions",
+  "minutes": "minutes",
+  "energy": "active kcal",
+  "distance": "kilometres",
+  "recent_workouts": "Recent workouts",
+  "table_view": "Table",
+  "calendar_view": "Calendar",
+  "no_workouts_day": "No workouts on this day.",
+  "date": "Date",
+  "activity": "Activity",
+  "duration": "Duration",
+  "heart_rate": "Avg. heart rate",
+  "empty": "No workouts were found. Run bun run health:import after placing export.zip in the project root.",
+  "load_error": "Workout data could not be loaded.",
+  "source_note": "Indexed locally from Apple Health export.zip",
+  "language": "Français"
+}
