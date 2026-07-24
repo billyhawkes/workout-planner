@@ -1,4 +1,3 @@
-import { NodeServices } from "@effect/platform-node";
 import { Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/unstable/http";
 import { HttpApiBuilder } from "effect/unstable/httpapi";
@@ -7,8 +6,9 @@ import { AppApi } from "@/api";
 import { mcpLayer } from "@/lib/mcp-handler";
 import { workoutsHandler } from "@/services/workouts/api.builder";
 import { WorkoutsLive } from "@/services/workouts";
+import { DB } from "@/services/database";
 
-const workoutsLayer = WorkoutsLive.pipe(Layer.provide(NodeServices.layer));
+const workoutsLayer = WorkoutsLive.pipe(Layer.provide(DB.layer));
 
 const apiLayer = HttpApiBuilder.layer(AppApi, {
   openapiPath: "/api/openapi.json",

@@ -9,6 +9,10 @@ export const HeartRate = Schema.Struct({
 export const Workout = Schema.Struct({
   id: Schema.String,
   activityType: Schema.String,
+  status: Schema.Union([
+    Schema.Literal("planned"),
+    Schema.Literal("completed"),
+  ]),
   startDate: Schema.String,
   endDate: Schema.String,
   durationMinutes: Schema.Number,
@@ -17,6 +21,7 @@ export const Workout = Schema.Struct({
   distanceKilometres: Schema.optional(Schema.Number),
   activeEnergyKilocalories: Schema.optional(Schema.Number),
   heartRate: Schema.optional(HeartRate),
+  notes: Schema.optional(Schema.String),
 }).annotate({ identifier: "Workout" });
 
 export const WorkoutIndex = Schema.Array(Workout).annotate({
@@ -43,10 +48,28 @@ export const WorkoutSummary = Schema.Struct({
   byActivityType: Schema.Record(Schema.String, Schema.Number),
 }).annotate({ identifier: "WorkoutSummary" });
 
+export const WorkoutPayload = Schema.Struct({
+  activityType: Schema.NonEmptyString,
+  status: Schema.Union([
+    Schema.Literal("planned"),
+    Schema.Literal("completed"),
+  ]),
+  startDate: Schema.NonEmptyString,
+  durationMinutes: Schema.Number,
+  indoor: Schema.optional(Schema.Boolean),
+  distanceKilometres: Schema.optional(Schema.Number),
+  notes: Schema.optional(Schema.String),
+}).annotate({ identifier: "WorkoutPayload" });
+
+export const WorkoutIdParams = Schema.Struct({
+  id: Schema.String,
+}).annotate({ identifier: "WorkoutIdParams" });
+
 export class WorkoutDataError extends Schema.TaggedErrorClass<WorkoutDataError>()(
   "WorkoutDataError",
   { message: Schema.String, cause: Schema.optional(Schema.Defect()) },
 ) {}
 
 export type Workout = typeof Workout.Type;
+export type WorkoutPayload = typeof WorkoutPayload.Type;
 export type WorkoutSummary = typeof WorkoutSummary.Type;

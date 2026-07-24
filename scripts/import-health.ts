@@ -1,8 +1,10 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
-import { Console, Effect, FileSystem, Schema, Stream } from "effect";
+import { Console, Effect, Schema, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 import { SaxesParser, type SaxesTagPlain } from "saxes";
 
+import { DB } from "@/services/database";
+import { Workouts, WorkoutsLive } from "@/services/workouts";
 import {
   WorkoutDataError,
   WorkoutIndex,
@@ -11,7 +13,6 @@ import {
 
 const archivePath = "export.zip";
 const exportEntry = "apple_health_export/export.xml";
-const indexPath = "tmp/apple-health-workouts.json";
 
 type PendingWorkout = {
   activityType: string;
@@ -43,7 +44,6 @@ const finiteNumber = (value: string | undefined) => {
 };
 
 const importWorkouts = Effect.gen(function* () {
-  const fileSystem = yield* FileSystem.FileSystem;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const workouts: Array<WorkoutType> = [];
   let current: PendingWorkout | undefined;
@@ -107,8 +107,17 @@ const importWorkouts = Effect.gen(function* () {
   });
   parser.on("closetag", (tag) => {
     if (tag.name !== "Workout" || current === undefined) return;
-    const startMilliseconds = Date.parse(current.startDate);
-    workouts.push({ ...current, id: `workout-${startMilliseconds}` });
+    workouts.push({
+      ...current,
+      id: [
+        "health",
+        current.startDate,
+        current.endDate,
+        current.activityType,
+        current.sourceName,
+      ].join(":"),
+      status: "completed",
+    });
     current = undefined;
   });
 
@@ -132,12 +141,9 @@ const importWorkouts = Effect.gen(function* () {
 
   workouts.sort((left, right) => right.startDate.localeCompare(left.startDate));
   const validated = yield* Schema.decodeUnknownEffect(WorkoutIndex)(workouts);
-  const json = yield* Schema.encodeEffect(Schema.fromJsonString(WorkoutIndex))(
-    validated,
-  );
-  yield* fileSystem.makeDirectory("tmp", { recursive: true });
-  yield* fileSystem.writeFileString(indexPath, json);
-  yield* Console.log(`Indexed ${workouts.length} workouts in ${indexPath}`);
+  const service = yield* Workouts;
+  const imported = yield* service.import(validated);
+  yield* Console.log(`Imported ${imported} workouts into the local database`);
 }).pipe(
   Effect.mapError((cause) =>
     cause instanceof WorkoutDataError
@@ -145,6 +151,8 @@ const importWorkouts = Effect.gen(function* () {
       : new WorkoutDataError({ message: "Apple Health import failed", cause }),
   ),
   Effect.scoped,
+  Effect.provide(WorkoutsLive),
+  Effect.provide(DB.layer),
   Effect.provide(NodeServices.layer),
 );
 

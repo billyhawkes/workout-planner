@@ -18,6 +18,7 @@ describe("workout schemas", () => {
       Schema.decodeUnknownSync(Workout)({
         id: "workout-1",
         activityType: "Running",
+        status: "completed",
         startDate: "2026-07-22T09:00:00-04:00",
         endDate: "2026-07-22T09:30:00-04:00",
         durationMinutes: 30,

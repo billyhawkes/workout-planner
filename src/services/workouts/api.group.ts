@@ -8,7 +8,9 @@ import {
 
 import {
   Workout,
+  WorkoutIdParams,
   WorkoutListQuery,
+  WorkoutPayload,
   WorkoutSummary,
   WorkoutSummaryQuery,
 } from "./schema";
@@ -25,6 +27,21 @@ export const WorkoutsApiGroup = HttpApiGroup.make("workouts")
         OpenApi.Description,
         "Returns recent workouts from the local Apple Health export index, with optional activity and date filters.",
       ),
+  )
+  .add(
+    HttpApiEndpoint.post("createWorkout", "/workouts", {
+      payload: WorkoutPayload,
+      success: Workout,
+      error: HttpApiError.InternalServerError,
+    }).annotate(OpenApi.Summary, "Create a workout or planned session"),
+  )
+  .add(
+    HttpApiEndpoint.patch("updateWorkout", "/workouts/:id", {
+      params: WorkoutIdParams,
+      payload: WorkoutPayload,
+      success: Workout,
+      error: [HttpApiError.NotFound, HttpApiError.InternalServerError],
+    }).annotate(OpenApi.Summary, "Update a workout or planned session"),
   )
   .add(
     HttpApiEndpoint.get("summarizeWorkouts", "/workouts/summary", {

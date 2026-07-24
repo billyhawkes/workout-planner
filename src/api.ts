@@ -7,7 +7,7 @@ export const AppApi = HttpApi.make("AppApi")
     OpenApi.annotations({
       title: "Training Ledger API",
       version: "1.0.0",
-      description: "Read-only Apple Health workout data indexed locally.",
+      description: "Local Apple Health workouts and training plans.",
     }),
   )
   .add(WorkoutsApiGroup)
