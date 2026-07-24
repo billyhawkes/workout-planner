@@ -1,5 +1,4 @@
 import { Bike, Footprints, Gauge, Ruler } from "lucide-react";
-import { useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,9 +14,13 @@ import type { Workout } from "../schema";
 
 type Props = {
   readonly workouts: ReadonlyArray<Workout>;
+  readonly activity: ActivityType;
+  readonly metric: Metric;
+  readonly onActivityChange: (activity: ActivityType) => void;
+  readonly onMetricChange: (metric: Metric) => void;
 };
 
-type ActivityType = "Running" | "Cycling";
+type ActivityType = "running" | "cycling";
 type Metric = "pace" | "distance";
 
 const formatPace = (pace: number) => {
@@ -52,12 +55,20 @@ const paddedDomain = (
   return [Math.max(0, minimum - padding), maximum + padding];
 };
 
-export function PaceChart({ workouts }: Props) {
-  const [activity, setActivity] = useState<ActivityType>("Running");
-  const [metric, setMetric] = useState<Metric>("pace");
+export function PaceChart({
+  workouts,
+  activity,
+  metric,
+  onActivityChange,
+  onMetricChange,
+}: Props) {
   const selected = workouts
     .filter(hasDistance)
-    .filter((workout) => workout.activityType === activity)
+    .filter(
+      (workout) =>
+        workout.activityType ===
+        (activity === "running" ? "Running" : "Cycling"),
+    )
     .slice(0, 20)
     .reverse();
   const data = selected.map((workout) => ({
@@ -73,7 +84,7 @@ export function PaceChart({ workouts }: Props) {
     value: {
       label: metric === "pace" ? m.pace() : m.distance_chart(),
       color:
-        activity === "Running" ? "oklch(0.62 0.2 255)" : "oklch(0.72 0.19 55)",
+        activity === "running" ? "oklch(0.62 0.2 255)" : "oklch(0.72 0.19 55)",
     },
   } satisfies ChartConfig;
 
@@ -92,15 +103,15 @@ export function PaceChart({ workouts }: Props) {
           <Tabs
             value={activity}
             onValueChange={(value) =>
-              setActivity(value === "Cycling" ? "Cycling" : "Running")
+              onActivityChange(value === "cycling" ? "cycling" : "running")
             }
           >
             <TabsList>
-              <TabsTrigger value="Running">
+              <TabsTrigger value="running">
                 <Footprints data-icon="inline-start" />
                 {m.activity_running()}
               </TabsTrigger>
-              <TabsTrigger value="Cycling">
+              <TabsTrigger value="cycling">
                 <Bike data-icon="inline-start" />
                 {m.activity_cycling()}
               </TabsTrigger>
@@ -109,7 +120,7 @@ export function PaceChart({ workouts }: Props) {
           <Tabs
             value={metric}
             onValueChange={(value) =>
-              setMetric(value === "distance" ? "distance" : "pace")
+              onMetricChange(value === "distance" ? "distance" : "pace")
             }
           >
             <TabsList>

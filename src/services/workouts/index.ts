@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, ilike, inArray, lte, sql } from "drizzle-orm";
 import { Context, Effect, Layer } from "effect";
 
 import { workouts as workoutTable } from "@/db/schema";
@@ -19,6 +19,8 @@ type ListInput = {
 
 const databaseError = (message: string) => (cause: unknown) =>
   new WorkoutDataError({ message, cause });
+
+const plannedWorkoutMatchWindowMs = 12 * 60 * 60 * 1000;
 
 const fromRow = (row: typeof workoutTable.$inferSelect): Workout => ({
   id: row.id,
@@ -187,50 +189,118 @@ const make = Effect.gen(function* () {
   ) => {
     if (items.length === 0) return Effect.succeed(0);
     return db
-      .insert(workoutTable)
-      .values(
-        items.map((workout) => ({
-          id: workout.id,
-          activityType: workout.activityType,
-          status: "completed",
-          startDate: workout.startDate,
-          endDate: workout.endDate,
-          durationMinutes: workout.durationMinutes,
-          sourceName: workout.sourceName,
-          indoor: workout.indoor,
-          distanceKilometres: workout.distanceKilometres ?? null,
-          activeEnergyKilocalories: workout.activeEnergyKilocalories ?? null,
-          heartRateAverage: workout.heartRate?.average ?? null,
-          heartRateMinimum: workout.heartRate?.minimum ?? null,
-          heartRateMaximum: workout.heartRate?.maximum ?? null,
-          notes: workout.notes ?? null,
-          imported: true,
-          updatedAt: new Date().toISOString(),
-        })),
+      .transaction((tx) =>
+        Effect.gen(function* () {
+          const existingImports = yield* tx
+            .select({ id: workoutTable.id })
+            .from(workoutTable)
+            .where(eq(workoutTable.imported, true));
+          const existingImportIds = new Set(
+            existingImports.map((workout) => workout.id),
+          );
+          const plannedWorkouts = yield* tx
+            .select({
+              id: workoutTable.id,
+              activityType: workoutTable.activityType,
+              startDate: workoutTable.startDate,
+              notes: workoutTable.notes,
+            })
+            .from(workoutTable)
+            .where(eq(workoutTable.status, "planned"));
+
+          const usedPlanIds = new Set<string>();
+          const matchedPlans = new Map<
+            string,
+            (typeof plannedWorkouts)[number]
+          >();
+          for (const workout of items) {
+            if (existingImportIds.has(workout.id)) continue;
+
+            const workoutStart = Date.parse(workout.startDate);
+            let closestPlan: (typeof plannedWorkouts)[number] | undefined;
+            let closestDifference = plannedWorkoutMatchWindowMs + 1;
+            for (const plan of plannedWorkouts) {
+              if (
+                usedPlanIds.has(plan.id) ||
+                plan.activityType.trim().toLowerCase() !==
+                  workout.activityType.trim().toLowerCase()
+              ) {
+                continue;
+              }
+
+              const difference = Math.abs(
+                Date.parse(plan.startDate) - workoutStart,
+              );
+              if (
+                difference <= plannedWorkoutMatchWindowMs &&
+                difference < closestDifference
+              ) {
+                closestPlan = plan;
+                closestDifference = difference;
+              }
+            }
+
+            if (closestPlan) {
+              usedPlanIds.add(closestPlan.id);
+              matchedPlans.set(workout.id, closestPlan);
+            }
+          }
+
+          if (usedPlanIds.size > 0) {
+            yield* tx
+              .delete(workoutTable)
+              .where(inArray(workoutTable.id, Array.from(usedPlanIds)));
+          }
+
+          const updatedAt = new Date().toISOString();
+          yield* tx
+            .insert(workoutTable)
+            .values(
+              items.map((workout) => ({
+                id: workout.id,
+                activityType: workout.activityType,
+                status: "completed",
+                startDate: workout.startDate,
+                endDate: workout.endDate,
+                durationMinutes: workout.durationMinutes,
+                sourceName: workout.sourceName,
+                indoor: workout.indoor,
+                distanceKilometres: workout.distanceKilometres ?? null,
+                activeEnergyKilocalories:
+                  workout.activeEnergyKilocalories ?? null,
+                heartRateAverage: workout.heartRate?.average ?? null,
+                heartRateMinimum: workout.heartRate?.minimum ?? null,
+                heartRateMaximum: workout.heartRate?.maximum ?? null,
+                notes:
+                  workout.notes ?? matchedPlans.get(workout.id)?.notes ?? null,
+                imported: true,
+                updatedAt,
+              })),
+            )
+            .onConflictDoUpdate({
+              target: workoutTable.id,
+              set: {
+                activityType: sql`excluded.activity_type`,
+                status: "completed",
+                startDate: sql`excluded.start_date`,
+                endDate: sql`excluded.end_date`,
+                durationMinutes: sql`excluded.duration_minutes`,
+                sourceName: sql`excluded.source_name`,
+                indoor: sql`excluded.indoor`,
+                distanceKilometres: sql`coalesce(excluded.distance_kilometres, ${workoutTable.distanceKilometres})`,
+                activeEnergyKilocalories: sql`coalesce(excluded.active_energy_kilocalories, ${workoutTable.activeEnergyKilocalories})`,
+                heartRateAverage: sql`coalesce(excluded.heart_rate_average, ${workoutTable.heartRateAverage})`,
+                heartRateMinimum: sql`coalesce(excluded.heart_rate_minimum, ${workoutTable.heartRateMinimum})`,
+                heartRateMaximum: sql`coalesce(excluded.heart_rate_maximum, ${workoutTable.heartRateMaximum})`,
+                imported: true,
+                updatedAt,
+              },
+            });
+
+          return items.length;
+        }),
       )
-      .onConflictDoUpdate({
-        target: workoutTable.id,
-        set: {
-          activityType: sql`excluded.activity_type`,
-          status: "completed",
-          startDate: sql`excluded.start_date`,
-          endDate: sql`excluded.end_date`,
-          durationMinutes: sql`excluded.duration_minutes`,
-          sourceName: sql`excluded.source_name`,
-          indoor: sql`excluded.indoor`,
-          distanceKilometres: sql`coalesce(excluded.distance_kilometres, ${workoutTable.distanceKilometres})`,
-          activeEnergyKilocalories: sql`coalesce(excluded.active_energy_kilocalories, ${workoutTable.activeEnergyKilocalories})`,
-          heartRateAverage: sql`coalesce(excluded.heart_rate_average, ${workoutTable.heartRateAverage})`,
-          heartRateMinimum: sql`coalesce(excluded.heart_rate_minimum, ${workoutTable.heartRateMinimum})`,
-          heartRateMaximum: sql`coalesce(excluded.heart_rate_maximum, ${workoutTable.heartRateMaximum})`,
-          imported: true,
-          updatedAt: new Date().toISOString(),
-        },
-      })
-      .pipe(
-        Effect.as(items.length),
-        Effect.mapError(databaseError("Could not import workouts")),
-      );
+      .pipe(Effect.mapError(databaseError("Could not import workouts")));
   });
 
   return {

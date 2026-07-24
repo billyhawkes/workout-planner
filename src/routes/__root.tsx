@@ -1,5 +1,11 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { BarChart3, Dumbbell } from "lucide-react";
 
+import { AppBrand } from "@/components/ui/app-brand";
+import { LocaleSwitcher } from "@/components/ui/locale-switcher";
+import { SidebarLayout, type NavGroup } from "@/components/ui/sidebar-layout";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { m } from "@/paraglide/messages";
 import { getLocale } from "@/paraglide/runtime";
 import appCss from "../styles.css?url";
 
@@ -24,13 +30,47 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const groups: NavGroup[] = [
+    {
+      label: () => m.workouts(),
+      items: [
+        {
+          label: () => m.training_trends(),
+          href: "/trends",
+          icon: BarChart3,
+        },
+        {
+          label: () => m.workouts(),
+          href: "/workouts",
+          icon: Dumbbell,
+        },
+      ],
+    },
+  ];
+
   return (
     <html lang={getLocale()}>
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <TooltipProvider>
+          <SidebarLayout
+            groups={groups}
+            sidebarHeader={
+              <AppBrand
+                label={m.app_title()}
+                subtitle={m.workouts()}
+                icon={Dumbbell}
+                variant="sidebar"
+                to="/trends"
+              />
+            }
+            headerActions={<LocaleSwitcher />}
+          >
+            {children}
+          </SidebarLayout>
+        </TooltipProvider>
         <Scripts />
       </body>
     </html>
