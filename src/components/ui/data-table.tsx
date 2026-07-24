@@ -282,6 +282,7 @@ export interface DataTableGalleryConfig {
   description?: string;
   tag?: string;
   tagIcon?: ReactNode;
+  details?: Array<{ id: string; label: string }>;
 }
 
 export interface DataTableReordering<TData> {
@@ -932,6 +933,15 @@ const DataTableGalleryCard = <TData,>({
   const tagCell = gallery?.tag
     ? row.getVisibleCells().find((cell) => cell.column.id === gallery.tag)
     : null;
+  const detailCells =
+    gallery?.details
+      ?.map((detail) => ({
+        ...detail,
+        cell: row
+          .getVisibleCells()
+          .find((cell) => cell.column.id === detail.id),
+      }))
+      .filter((detail) => detail.cell !== undefined) ?? [];
 
   if (gallery) {
     const tagValue = gallery.tag ? row.getValue(gallery.tag) : null;
@@ -991,6 +1001,20 @@ const DataTableGalleryCard = <TData,>({
             </CardDescription>
           ) : null}
         </CardHeader>
+        {detailCells.length > 0 ? (
+          <CardContent className="grid grid-cols-2 gap-4 border-t pt-4">
+            {detailCells.map(({ cell, id, label }) => (
+              <div className="min-w-0" key={id}>
+                <p className="text-muted-foreground mb-1 text-xs">{label}</p>
+                <div className="text-sm font-medium">
+                  {cell
+                    ? flexRender(cell.column.columnDef.cell, cell.getContext())
+                    : null}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        ) : null}
       </Card>
     );
   }
@@ -1714,7 +1738,7 @@ export function DataTable<TData, TValue>({
               <div className="relative w-full min-w-0 flex-1 sm:min-w-sm">
                 <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
                 <Input
-                  className="px-9"
+                  className="h-9 px-9"
                   onChange={(event) => {
                     setSearchInput(event.target.value);
                     table.setGlobalFilter(event.target.value);

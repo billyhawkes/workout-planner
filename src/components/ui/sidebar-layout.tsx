@@ -28,7 +28,7 @@ type NavItem = {
 };
 
 type NavGroup = {
-  label: () => string;
+  label?: () => string;
   items: NavItem[];
 };
 
@@ -55,8 +55,10 @@ function AppSidebar({ footer, groups, header }: AppSidebarProps) {
       {header && <SidebarHeader>{header}</SidebarHeader>}
       <SidebarContent>
         {groups.map((group) => (
-          <SidebarGroup key={group.label()}>
-            <SidebarGroupLabel>{group.label()}</SidebarGroupLabel>
+          <SidebarGroup key={group.items.map((item) => item.href).join("|")}>
+            {group.label ? (
+              <SidebarGroupLabel>{group.label()}</SidebarGroupLabel>
+            ) : null}
             <SidebarGroupContent>
               <SidebarMenu>
                 {group.items.map((item) => {

@@ -1,5 +1,5 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
-import { BarChart3, Dumbbell } from "lucide-react";
+import { Dumbbell } from "lucide-react";
 
 import { AppBrand } from "@/components/ui/app-brand";
 import { LocaleSwitcher } from "@/components/ui/locale-switcher";
@@ -32,13 +32,7 @@ export const Route = createRootRoute({
 function RootDocument({ children }: { children: React.ReactNode }) {
   const groups: NavGroup[] = [
     {
-      label: () => m.workouts(),
       items: [
-        {
-          label: () => m.training_trends(),
-          href: "/trends",
-          icon: BarChart3,
-        },
         {
           label: () => m.workouts(),
           href: "/workouts",
@@ -63,7 +57,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                 subtitle={m.workouts()}
                 icon={Dumbbell}
                 variant="sidebar"
-                to="/trends"
+                to="/workouts"
               />
             }
             headerActions={<LocaleSwitcher />}
